@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,4 +5,70 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model user {
+  id       Int    @id @default(autoincrement())
+  email    String @unique
+  password String
+  role     Role   @default(CUSTOMER)
+
+  costumer costumer?
+  seller   seller?  
+}
+
+enum Role {
+  CUSTOMER  // Cliente comum
+  SELLER    // Vendedor que pode cadastrar produtos
+}
+
+model costumer {
+  id       Int      @id @default(autoincrement())
+  name     String   @db.VarChar(30)
+  email    String   @db.VarChar(30) @unique
+  address  String   @db.VarChar(50)
+  orders   orders[]
+  user_id  Int      @unique
+  user     user     @relation(fields: [user_id], references: [id])
+}
+
+model orders {
+  id           Int            @id @default(autoincrement())
+  costumer_id  Int
+  total_price  Decimal?       @db.Decimal
+  costumer     costumer       @relation(fields: [costumer_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  orders_itens orders_itens[]
+}
+
+model orders_itens {
+  id         Int      @id @default(autoincrement())
+  order_id   Int?
+  product_id Int
+  quantity   Decimal? @db.Decimal
+  price      Decimal? @db.Decimal
+  status     String   @default("cart") // "cart" (no carrinho) ou "ordered" (comprado)
+
+  orders     orders?  @relation(fields: [order_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  product    product  @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+
+model product {
+  id           Int            @id @default(autoincrement())
+  name         String         @db.VarChar
+  description  String         @db.VarChar
+  price        Decimal        @db.Decimal
+  seller_id    Int
+  orders_itens orders_itens[]
+  seller       seller         @relation(fields: [seller_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model seller {
+  id       Int       @id @default(autoincrement())
+  name     String    @db.VarChar
+  email    String    @db.VarChar @unique
+  phone    String    @db.VarChar(20)
+  product  product[]
+  user_id  Int      @unique
+  user     user     @relation(fields: [user_id], references: [id])
 }
